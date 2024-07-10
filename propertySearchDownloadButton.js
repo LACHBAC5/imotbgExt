@@ -43,6 +43,35 @@ class PropertyParams {
 class Property {
     params = new PropertyParams
 
+    static dateParsingTable = {
+        "януари": 1,
+        "февруари": 2,
+        "март": 3,
+        "април": 4,
+        "май": 5,
+        "юни": 6,
+        "юли": 7,
+        "август": 8,
+        "септември": 9,
+        "октомври": 10,
+        "ноември": 11,
+        "декември": 12,
+    }
+
+    parseDateString(dateStr) {
+        dateStr = dateStr.split(",")
+        dateStr[0] = dateStr[0].split(" ")
+        dateStr[1] = dateStr[1].split(" ")
+
+        const day = dateStr[0][dateStr[0].length-2].padStart(2, "0")
+        const month = Property.dateParsingTable[dateStr[0][dateStr[0].length-1].toLowerCase()].toString().padStart(2, "0")
+        const year = dateStr[1][dateStr[1].length-2]
+
+        const date = day + "." + month + "." + year
+
+        return date
+    }
+
     toolbarParams = {
         "Площ:": paramArr => {
             this.params.plosht = Number(paramArr[1])
@@ -106,7 +135,12 @@ class Property {
             }
         })
 
-        
+        const editedElement = propertyHTML.querySelector(".adPrice > .info > div")
+        if(editedElement != null) {
+            const edit = editedElement.innerText
+            this.params.dataKorekciq = edit[0]+"-"+this.parseDateString(edit)
+        }
+
         const korekciqButtonElement = propertyHTML.querySelector(".price > span > a")
         if(korekciqButtonElement != null) {
             const newKorekciqButtonElement = document.body.insertBefore(korekciqButtonElement, document.body.firstChild)
@@ -124,13 +158,15 @@ class Property {
                 const margin = this.params.cena - nachalnaCena
 
                 const datiKorekcii = document.querySelectorAll(".prices > .date")
-                const dataPoslednaKorekciq =  datiKorekcii[datiKorekcii.length-1].innerText
+                
+                const dataPoslednaKorekciq = "K-"+this.parseDateString(datiKorekcii[datiKorekcii.length-1].innerText)
 
                 this.params.obemKorekciq = margin
                 this.params.dataKorekciq = dataPoslednaKorekciq
             }
+            
             priceTable.remove()
-            korekciqButtonElement.remove()
+            newKorekciqButtonElement.remove()
         }
 
         if(this.params.cena != null && this.params.plosht != null) {

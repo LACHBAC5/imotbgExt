@@ -1,0 +1,15 @@
+{
+    "name": "ImotBGExt",
+    "version": "1.0.0",
+    "manifest_version": 3,
+
+    "icons": {
+        "16": "icons/ExtToolbarIcon.png"
+    },
+
+    "content_scripts": [{
+            "matches": ["https://www.imot.bg/pcgi/*"],
+            "js": ["propertySearchDownloadButton.js"]
+        }
+    ]
+}

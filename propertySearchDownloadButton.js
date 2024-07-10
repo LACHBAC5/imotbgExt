@@ -110,9 +110,12 @@ class Property {
         const korekciqButtonElement = propertyHTML.querySelector(".price > span > a")
         if(korekciqButtonElement != null) {
             const newKorekciqButtonElement = document.body.insertBefore(korekciqButtonElement, document.body.firstChild)
+            newKorekciqButtonElement.style.display = 'none'
+        
             const priceTable = document.body.insertBefore(propertyHTML.querySelector('#price_stats'), document.body.firstChild)
-            await clickAndWaitForDOMChange(korekciqButtonElement, priceTable)
+            priceTable.style.display = 'none'
 
+            await clickAndWaitForDOMChange(korekciqButtonElement, priceTable)
 
             const korekcii = document.querySelectorAll(".newprice")
             if(korekcii != null && korekcii.length > 2) {

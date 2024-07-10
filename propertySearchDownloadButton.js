@@ -37,7 +37,7 @@ function downloadString(filename, string, dataType="text/plain;charset=UTF-8") {
 }
 
 class PropertyParams {
-    vid; mqsto; cena; plosht; etaj; broyEtaji; vidStroitelstvo; godinaStroitelstvo; TEC; GAZ; dataKorekciq; obemKorekciq; preglejdaniq; link
+    vid; mqsto; cena; plosht; cenaM2; etaj; broyEtaji; vidStroitelstvo; godinaStroitelstvo; TEC; GAZ; dataKorekciq; obemKorekciq; preglejdaniq; link
 }
 
 class Property {
@@ -133,6 +133,10 @@ class Property {
             korekciqButtonElement.remove()
         }
 
+        if(this.params.cena != null && this.params.plosht != null) {
+            this.params.cenaM2 = Math.round(this.params.cena / this.params.plosht)
+        }
+
         const preglejdaniqElement = propertyHTML.querySelector("div.info > span")
         if(preglejdaniqElement != null) {
             const preglejdaniq = preglejdaniqElement.innerText
@@ -151,6 +155,7 @@ class PropertyTable {
         "mqsto": "Място",
         "cena": "Цена",
         "plosht": "Площ",
+        "cenaM2": "Цена/м2",
         "etaj": "Етаж",
         "broyEtaji": "Бр.Етажи",
         "vidStroitelstvo": "Вид Строителство",

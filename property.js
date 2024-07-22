@@ -1,43 +1,6 @@
-parser = new DOMParser();
-async function scrapePageHTML(link) {
-    return fetch (link).then(async response => {
-        const contentType = response.headers.get("content-type");
-        const charset = contentType.match(/charset=([^;]*)/i)?.[1] || 'windows-1251';
-        const decoder = new TextDecoder(charset);
-
-        const buffer = await response.arrayBuffer()
-        return decoder.decode(buffer)
-    }).then(async html => {
-        return parser.parseFromString(html, "text/html")
-    })
-}
-
-function clickAndWaitForDOMChange(button, element) {
-    return new Promise((resolve) => {
-        const observer = new MutationObserver(() => {
-            resolve()
-        })
-        observer.observe(element, {childList: true})
-        button.click()
-    })
-}
-
-function downloadString(filename, string, dataType="text/plain;charset=UTF-8") {
-    let blob = new Blob([string], {type : dataType})
-
-    let a = document.createElement('a')
-    a.href = window.URL.createObjectURL(blob)
-    a.download = filename
-    a.style.display = 'none'
-
-    document.body.appendChild(a)
-    a.click()
-
-    delete a
-}
 
 class PropertyParams {
-    vid; mqsto; cena; plosht; cenaM2; etaj; broyEtaji; vidStroitelstvo; godinaStroitelstvo; TEC; GAZ; dataKorekciq; obemKorekciq; preglejdaniq; link
+    vid; mqsto; cena; plosht; cenaM2; etaj; broyEtaji; vidStroitelstvo; godinaStroitelstvo; atelie; dataPromqna; dataKorekciq; obemKorekciq; preglejdaniq; link; TEC; GAZ;
 }
 
 class Property {
@@ -138,7 +101,7 @@ class Property {
         const editedElement = propertyHTML.querySelector(".adPrice > .info > div")
         if(editedElement != null) {
             const edit = editedElement.innerText
-            this.params.dataKorekciq = edit[0]+"-"+this.parseDateString(edit)
+            this.params.dataPromqna = edit[0]+"-"+this.parseDateString(edit)
         }
 
         const korekciqButtonElement = propertyHTML.querySelector(".price > span > a")
@@ -149,7 +112,7 @@ class Property {
             const priceTable = document.body.insertBefore(propertyHTML.querySelector('#price_stats'), document.body.firstChild)
             priceTable.style.display = 'none'
 
-            await clickAndWaitForDOMChange(korekciqButtonElement, priceTable)
+            await clickAndWaitForDOMChange(korekciqButtonElement, priceTable, {childList: true})
 
             const korekcii = document.querySelectorAll(".newprice")
             if(korekcii != null && korekcii.length > 2) {
@@ -159,7 +122,7 @@ class Property {
 
                 const datiKorekcii = document.querySelectorAll(".prices > .date")
                 
-                const dataPoslednaKorekciq = "K-"+this.parseDateString(datiKorekcii[datiKorekcii.length-1].innerText)
+                const dataPoslednaKorekciq = this.parseDateString(datiKorekcii[2].innerText)
 
                 this.params.obemKorekciq = margin
                 this.params.dataKorekciq = dataPoslednaKorekciq
@@ -179,105 +142,23 @@ class Property {
             this.params.preglejdaniq = preglejdaniq;
         }
 
+    
+        const dotsLessElement = propertyHTML.querySelector("#dots_less")
+        if(dotsLessElement != null) {
+            dotsLessElement.style = ""
+        }
+    
+        const atelieElement = propertyHTML.querySelector("#description_div")
+        if(atelieElement != null) {
+            let atelieElementText = atelieElement.innerText
+            if(atelieElementText.toLowerCase().search("ателие")!=-1) {
+                this.params.atelie = "Да"
+            }
+            else {
+                this.params.atelie = "Не"
+            }
+        }
+
         this.params.link = link
     }
 }
-
-class PropertyTable {
-    xlsxWebTable
-
-    static NamingDictionary = {
-        "vid": "Вид",
-        "mqsto": "Място",
-        "cena": "Цена",
-        "plosht": "Площ",
-        "cenaM2": "Цена/м2",
-        "etaj": "Етаж",
-        "broyEtaji": "Бр.Етажи",
-        "vidStroitelstvo": "Вид Строителство",
-        "godinaStroitelstvo": "год.Стой",
-        "TEC": "ТЕЦ",
-        "GAZ": "Газ",
-        "dataKorekciq": "Дата.Крк",
-        "obemKorekciq": "Обем.Крк",
-        "preglejdaniq": "преглеждания",
-        "link": "линк"
-    }
-    
-    constructor () {
-        this.xlsxWebTable = document.createElement('table')
-        var tableRow = this.xlsxWebTable.insertRow()
-        for(let param in new PropertyParams) {
-            //console.log(param)
-            tableRow.insertCell().appendChild(document.createTextNode(PropertyTable.NamingDictionary[param]))
-        }
-    }
-
-    appendProperty(property) {
-        var tableRow = this.xlsxWebTable.insertRow()
-        for(let param in property.params) {
-            if(property.params[param] == undefined) {
-                tableRow.insertCell().appendChild(document.createTextNode(""))
-                continue
-            }
-            //console.log(param, property.params[param])
-            tableRow.insertCell().appendChild(document.createTextNode(property.params[param]))
-        }
-    }
-}
-
-class propertySearchDownloader extends PropertyTable {
-    onPageParsed
-    constructor (onPageParsedCallback) {
-        super()
-        this.onPageParsed = onPageParsedCallback
-    }
-
-    async parseSearchPage(searchPageHTML) {
-        const propertyLinks = searchPageHTML.querySelectorAll("a.lnk2")
-        for (const link of propertyLinks) {
-            const propertyPage = await scrapePageHTML(link)
-            
-            const property = new Property
-            await property.parsePropertyHTML(propertyPage, link.href)
-            this.appendProperty(property)
-
-            this.onPageParsed()
-            //break
-        }
-    }
-    
-    async downloadSearchData() {
-        await this.parseSearchPage(document)
-        
-        const pageButtons = document.querySelector("span.pageNumbersDisable").parentElement.querySelectorAll("a.pageNumbers")
-        for(const button of pageButtons) {
-            const page = await scrapePageHTML(button.href)
-            await this.parseSearchPage(page)
-        }
-        
-        downloadString("searchTable.html", a.xlsxWebTable.outerHTML)
-    }
-}
-
-let buttonPlace = document.querySelector(".pageNumbersInfo")
-if(buttonPlace != null) {
-    let button = document.createElement("button")
-    button.innerText = "ИЗТЕГЛИ ТАБЛИЦА"
-    let clickedCounter = document.createElement("button")
-
-    button.onclick = () => {
-        clickedCounter.innerText = 0
-        a = new propertySearchDownloader(()=>{
-            clickedCounter.innerText = Number(clickedCounter.innerText) + 1
-        })
-
-        a.downloadSearchData().then(()=>{
-            clickedCounter.replaceWith(button)
-        })
-        button.replaceWith(clickedCounter)
-    }
-
-    buttonPlace.replaceWith(button)
-}
-

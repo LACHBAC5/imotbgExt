@@ -7,9 +7,10 @@
         "16": "icons/ExtToolbarIcon.png"
     },
 
-    "content_scripts": [{
+    "content_scripts": [
+        {
             "matches": ["https://www.imot.bg/pcgi/*"],
-            "js": ["propertySearchDownloadButton.js"]
+            "js": ["property.js", "propertyTable.js", "searchDownloader.js", "searchDownloadButton.js"]
         }
     ]
 }
